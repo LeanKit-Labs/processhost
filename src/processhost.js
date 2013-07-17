@@ -6,7 +6,7 @@
 // !!! NOTICE !!!
 
 var _ = require( "underscore" ),
-	Monologue = require( "monologue.js" ),
+	Monologue = require( "monologue.js" )( _ ),
 	spawn = require( "win-fork" ),
 	minimatch = require( "minimatch" ),
 	Process = require( "./process.js" )( _, spawn, minimatch, Monologue );
