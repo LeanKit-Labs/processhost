@@ -1,0 +1,33 @@
+{
+  "name": "processhost",
+  "author": "Alex Robson <alex@sharplearningcurve.com> (http://sharplearningcurve.com)",
+  "description": "a ridiculously simple process host",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": "~0.10.10"
+  },
+  "dependencies": {
+    "underscore": "~1.4.3",
+    "monologue.js": "~0.1.1",
+    "minimatch": "~0.2.12",
+    "win-fork": "~1.1.1"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "main": "./lib/processHost.js",
+  "test": "anvil --testem",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/anviljs/processhost/raw/master/LICENSE-MIT"
+    },
+    {
+      "type": "GPL",
+      "url": "https://github.com/anviljs/processhost/raw/master/LICENSE-GPL"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+node_modules/
+.idea/
+index.html
+.DS_Store
+.anvil/
+plugins/anvil.*
