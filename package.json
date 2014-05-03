@@ -2,7 +2,7 @@
   "name": "processhost",
   "author": "Alex Robson <alex@sharplearningcurve.com> (http://sharplearningcurve.com)",
   "description": "a ridiculously simple process host",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "repository": {
     "type": "git",
     "url": ""
