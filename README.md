@@ -1,58 +1,95 @@
 # processhost
-Its almost too simple to be of use. I've extracted it from Anvil because I kept wanting something that worked like Anvil's processhost. So ... yeah.
+Super simple, cross-platform process hosting for Node, adapted from [Anvil]'s(https://github.com/anviljs/anvil.js) processhost.
+
+The most useful features are:
+
+ * Reliably kills child processes on process exit
+ * Reliably restarts child processes
+ * Apply a tolerance to restart behavior
 
 ## API
 
-### Getting an instance
 ```javascript
-	var processHost = require( "processhost" )();
-```
-
-### startProcess
-```javascript
-	processHost.startProcess( <processAlias>, <configuration> );
-```
-
-### stopProcess
-```javascript
-	processHost.stopProcess( <processAlias> );
-```
-
-### restart
-Process alias is optional. If provided, only restarts process with matching alias. If not provided, restarts ALL processes with restart: true in their configuration.
-
-```javascript
-	processHost.restart(); // restart all
-
-	processHost.restart( 'myApp' ); // restart only 'myApp'
-``` 
-
-### stop
-Stops everything.
-
-```javascript
-	processHost.stop();
+var processes = require( "processhost" )();
 ```
 
 ### configuration
-Possible config values:
+Configuration hash has the following options. Only command and args are required.
 
-	{
-		"cwd": "", // defaults to current working directory
-		"command": "", // this will probably be "node"
-		"args": [], // the command line args for the process, i.e. your script
-		"killSignal": "" | [ "" ], // not required, defaults to "SIGTERM", it can be multiple
-		"stdio": "inherit" | "ignore" // determines if the process will write to the console
-		"env": {}, // defaults to the process.env, should be simple hash
-		"tolerance": 1, // number of allowed restarts
-		"toleranceWindow": 100 // duration (in ms) of tolerance window
-	}
+```javascript
+{
+	command: "", // this will probably be "node"
+	args: [], // the command line args for the process, i.e. your script
+	[cwd]: "", // defaults to current working directory
+	[killSignal]: "" | [ "" ], // not required, defaults to "SIGTERM", can provide an array
+	[stdio]: "inherit" | "ignore" | "pipe" // determines if the process will write to the console
+	[env]: {}, // defaults to the process.env, should be simple hash
+	[restartLimit]: 1, // number of allowed restarts
+	[restartWindow]: 100 // duration (in ms) of tolerance window
+}
+```
+
+> Notes
+
+> 1. `restartWindow` defaults to undefined - this results in limitless restarts
+
+> 2. `stdio` defaults to "inherit" causing child processes to share the parents stdio/stderr
+
+### create( processAlias, configuration )
+Creates a new process without starting it.
+```javascript
+processes.start( "myProcess", { command: "node", args: [ "./index.js" ], cwd: "./src" } );
+```
+
+### restart( [processAlias] )
+If a `processAlias` is provided, only starts|restarts the matching process. Otherwise, this will start|restart ALL processes that have been defined.
+
+```javascript
+processes.restart(); // restart all
+
+processes.restart( 'myApp' ); // restart only 'myApp'
+```
+
+### setup( processesHash )
+Used to define and potentially start multiple processes in a single call.
+
+```javascript
+processes.setup( {
+	"one": { ... },
+	"two": { ... },
+	"three": { ... }
+} );
+```
+
+> Note
+
+> To have the processes started automatically, add a `start`: true to the config block.
+
+### start( processAlias, [configuration] )
+If no configuration is provided, this will start|restart the matching process. If a configuration is provided, this will create and start a new process.
+
+```javascript
+processes.start( "myProcess", { command: "node", args: [ "./index.js" ], cwd: "./src" } );
+```
+
+### stop( [processAlias] )
+If no `processAlias` is provided, stops all running processes, otherwise it stops the specified process if it exists and is running.
+
+```javascript
+processes.stop();
+```
 
 ## Events
-You can subscribed to the following process level events off the process host.
+You can subscribe to the following process level events off the process host.
 
-### <processAlias>.started
+ * [processAlias].crashed - the process has exited unexpectedly
+ * [processAlias].failed - the process has exceeded the set tolerance
+ * [processAlias].restarting - the process is restarting
+ * [processAlias].started - the process has started
+ * [processAlias].stderr 
+ * [processAlias].stdout
+ * [processAlias].stopped - the process has exited after `stop` was called
+ 
+> Note
 
-### <processAlias>.stopped
-
-### <processAlias>.exit
+> The `stderr` and `stdout` events will not fire unless you set `stdio` to "pipe" in the config hash.
