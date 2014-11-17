@@ -47,7 +47,7 @@ describe( "when starting a child process", function() {
 
 describe( "when setting up multiple child process", function() {
 	var host;
-
+	
 	before( function( done ) {
 		var remaining = 3;
 		var onStart = function() {
@@ -85,12 +85,14 @@ describe( "when setting up multiple child process", function() {
 		} );
 	} );
 
-	it( "should capture started event from host", function() {
-		
+	it( "should create all three processes", function() {
+		_.keys( host.processes ).should.eql( [ "timer3a", "timer3b", "timer3c" ] );
 	} );
 
-	it( "should have captured stdout data", function() {
-		
+	it( "should start all three processes", function() {
+		_.all( _.values( host.processes ), function( process ) {
+			return process.state === 'started';
+		} );
 	} );
 
 	after( function() {

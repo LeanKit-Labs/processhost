@@ -59,6 +59,25 @@ function stopProcess( handle, signals, id ) {
 
 module.exports = function( spawn ) {
 	var Process = machina.Fsm.extend( {
+		_startProcess: function() {
+			var config = this.config;
+			this.transition( "starting" );
+			this.processHandle = startProcess( spawn, config, this.id );
+
+			attachToIO( this.processHandle, "stderr", this.emit, this.id );
+			attachToIO( this.processHandle, "stdout", this.emit, this.id );
+			
+			this.processHandle.on( "exit", function( code, signal ) {
+				debug( "Process '%s' exited with code %d", this.id, code );
+				this.handle( "processExit", { code: code, signal: signal } );
+			}.bind( this ) );
+			this.transition( "started" );
+		},
+		_stopProcess: function() {
+			if( this.processHandle ) {
+				stopProcess( this.processHandle, this.config.killSignal, this.id );
+			}
+		},
 		initialize: function( id, config ) {
 			this.id = id;
 			this.config = config;
@@ -74,30 +93,12 @@ module.exports = function( spawn ) {
 				this.handle( "start", {} );
 			}.bind( this ) );
 		},
-		startProcess: function() {
-			var config = this.config;
-			this.transition( "starting" );
-			this.processHandle = startProcess( spawn, config, this.id );
-
-			attachToIO( this.processHandle, "stderr", this.emit, this.id );
-			attachToIO( this.processHandle, "stdout", this.emit, this.id );
-			
-			this.processHandle.on( "exit", function( code, signal ) {
-				debug( "Process '%s' exited with code %d", this.id, code );
-				this.handle( "processExit", { code: code, signal: signal } );
-			}.bind( this ) );
-			this.transition( "started" );
-		},
 		stop: function() {
 			process.nextTick( function() {
 				this.handle( "stop", {} );
 			}.bind( this ) );
 		},
-		stopProcess: function() {
-			if( this.processHandle ) {
-				stopProcess( this.processHandle, this.config.killSignal, this.id );
-			}
-		},
+		
 		write: function( data ) {
 			if( this.processHandle && this.processHandle.stdin ) {
 				this.processHandle.stdin.write( data );
@@ -106,7 +107,7 @@ module.exports = function( spawn ) {
 		states: {
 			uninitialized: {
 				start: function() {
-					this.startProcess();
+					this._startProcess();
 				}
 			},
 			crashed: {
@@ -114,7 +115,7 @@ module.exports = function( spawn ) {
 					debug( "Process '%s' entering '%s' state", this.id, this.state );
 				},
 				start: function() {
-					this.startProcess();
+					this._startProcess();
 				}
 			},
 			restarting: {
@@ -124,7 +125,7 @@ module.exports = function( spawn ) {
 				},
 				processExit: function( data ) {
 					debug( "Process '%s' exited during restart", this.id );
-					this.startProcess();
+					this._startProcess();
 				}
 			},
 			starting: {
@@ -148,11 +149,11 @@ module.exports = function( spawn ) {
 				start: function() {
 					debug( "Process '%s' is being restarted", this.id );
 					this.transition( "restarting" );
-					this.stopProcess();
+					this._stopProcess();
 				},
 				stop: function() {
 					this.transition( "stopping" );
-					this.stopProcess();
+					this._stopProcess();
 				},
 				processExit: function( data ) {
 					this.transition( "crashed" );
@@ -176,7 +177,7 @@ module.exports = function( spawn ) {
 				},
 				start: function() {
 					this.exits = 0;
-					this.startProcess();
+					this._startProcess();
 				}
 			}
 		}
