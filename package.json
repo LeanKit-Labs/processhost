@@ -1,8 +1,8 @@
 {
   "name": "processhost",
-  "author": "Alex Robson <alex@sharplearningcurve.com> (http://sharplearningcurve.com)",
+  "author": "Alex Robson <asrobson@gmail.com> (http://nerdventure.io)",
   "description": "a ridiculously simple process host",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": ""
@@ -11,25 +11,30 @@
     "node": "~0.10.10"
   },
   "dependencies": {
+    "debug": "^2.1.0",
     "lodash": "~2.4.1",
-    "machina": "~0.3.6",
+    "machina": "0.3.8",
     "minimatch": "~0.2.12",
-    "monologue.js": "~0.1.1",
+    "monologue.js": "0.1.4",
     "underscore": "~1.4.3",
-    "win-spawn": "git://github.com/arobson/win-spawn.git#master"
+    "when": "^3.6.1",
+    "win-spawn": "arobson/win-spawn.git#master"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "gulp": "^3.8.10",
+    "gulp-mocha": "^1.1.1",
+    "should": "^4.3.0",
+    "sinon": "^1.11.1"
+  },
   "optionalDependencies": {},
-  "main": "./lib/processHost.js",
-  "test": "anvil --testem",
+  "main": "./src/processHost.js",
+  "scripts": {
+    "test": "gulp test"
+  },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/anviljs/processhost/raw/master/LICENSE-MIT"
-    },
-    {
-      "type": "GPL",
-      "url": "https://github.com/anviljs/processhost/raw/master/LICENSE-GPL"
+      "url": "https://github.com/LeanKit-Labs/processhost/raw/master/LICENSE"
     }
   ]
 }
