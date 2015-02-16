@@ -2,9 +2,10 @@ var _ = require( "lodash" );
 var should = require( "should" ); // jshint ignore:line
 var spawn = require( "win-spawn" );
 
-describe( "Using spawn", function() {
+describe( "Live Process Control", function() {
 	var child;
-	var handleEvent = false, stdoutData = false;
+	var handleEvent = false;
+	var stdoutData = false;
 
 	before( function( done ) {
 		var Process = require( "../src/process.js" )( spawn );
@@ -57,9 +58,12 @@ describe( "Process transitions", function() {
 				this.handles[ ev ] = handler;
 			},
 			raise: function( ev, one, two, three ) {
-				if( this.handles[ ev ] ) {
+				if ( this.handles[ ev ] ) {
 					this.handles[ ev ]( one, two, three );
 				}
+			},
+			removeAllListeners: function() {
+				this.handles = {};
 			},
 			kill: function() {
 				process.nextTick( function() {
@@ -76,7 +80,7 @@ describe( "Process transitions", function() {
 
 		before( function( done ) {
 			spawn = function() {
-				if( onSpawn ) {
+				if ( onSpawn ) {
 					process.nextTick( function() {
 						onSpawn();
 					} );
@@ -90,30 +94,29 @@ describe( "Process transitions", function() {
 				restartLimit: 10,
 				restartWindow: 1000
 			} );
-			child.start();
-			child.once( "started", function() {
-				child.off( "started" );
-				done();
-			} );
+			child.start()
+				.then( function() {
+					done();
+				} );
 		} );
 
 		it( "should be in the started state", function() {
 			child.state.should.equal( "started" );
 		} );
 
-		describe( "when calling start on a started process", function() {
+		describe( "when restarting a user restart-able process", function() {
 			var transitionalState;
 
 			before( function( done ) {
 				child.once( "restarting", function() {
 					transitionalState = child.state;
-					child.off( "restarting" );
 				} );
-				child.once( "started", function() {
-					child.off( "started" );
-					done();
-				} );
-				child.start();
+
+				child
+					.start()
+					.then( function() {
+						done();
+					} );
 			} );
 
 			it( "should restart the process (stop and start)", function() {
@@ -129,8 +132,37 @@ describe( "Process transitions", function() {
 			} );
 		} );
 
+		describe( "when calling restarting a un-restart-able process", function() {
+			var transitionalState;
+
+			before( function( done ) {
+				child.config.restart = false;
+				child.once( "restarting", function() {
+					transitionalState = child.state;
+				} );
+
+				child
+					.start()
+					.then( function() {
+						done();
+					} );
+			} );
+
+			it( "should not restart the process", function() {
+				should.not.exist( transitionalState );
+			} );
+
+			it( "should stay in started", function() {
+				child.state.should.equal( "started" );
+			} );
+
+			it( "should not increment exits", function() {
+				child.exits.should.equal( 0 );
+			} );
+		} );
+
 		describe( "when calling stop on a started process", function() {
-			
+
 			before( function( done ) {
 				child.once( "exit", function() {
 					done();
@@ -156,7 +188,7 @@ describe( "Process transitions", function() {
 
 		describe( "when a process crashes", function() {
 			var exit;
-			before( function( done ) {			
+			before( function( done ) {
 				child.once( "crashed", function( details ) {
 					done();
 					exit = details;
@@ -172,8 +204,8 @@ describe( "Process transitions", function() {
 				child.exits.should.equal( 1 );
 			} );
 
-			it( "should not have restarted", function() {
-				child.state.should.equal( "crashed" );
+			it( "should restart", function() {
+				child.state.should.equal( "started" );
 			} );
 
 			after( function( done ) {
@@ -197,20 +229,20 @@ describe( "Process transitions", function() {
 				child.start();
 			} );
 
-			it( "should resolve to a crashed state", function() {
-				child.state.should.equal( "crashed" );
+			it( "should resolve to a started state", function() {
+				child.state.should.equal( "started" );
 			} );
 
 			it( "should increment exits", function() {
-				child.exits.should.equal( 2 );
+				child.exits.should.equal( 0 );
 			} );
 
 			after( function( done ) {
 				onSpawn = undefined;
-				child.once( "started", function() {
-					done();
-				} );
-				child.start();
+				child.start()
+					.then( function() {
+						done();
+					} );
 			} );
 		} );
 
@@ -223,7 +255,7 @@ describe( "Process transitions", function() {
 			} );
 
 			it( "should not increment exits", function() {
-				child.exits.should.equal( 2 );
+				child.exits.should.equal( 0 );
 			} );
 
 			it( "should end in a stopped state", function() {

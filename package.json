@@ -2,7 +2,7 @@
   "name": "processhost",
   "author": "Alex Robson <asrobson@gmail.com> (http://nerdventure.io)",
   "description": "a ridiculously simple process host",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "repository": {
     "type": "git",
     "url": ""
@@ -22,7 +22,10 @@
   },
   "devDependencies": {
     "gulp": "^3.8.10",
+    "gulp-istanbul": "^0.6.0",
     "gulp-mocha": "^1.1.1",
+    "istanbul": "^0.3.5",
+    "open": "0.0.5",
     "should": "^4.3.0",
     "sinon": "^1.11.1"
   },
