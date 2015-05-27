@@ -7,7 +7,7 @@
 
 var _ = require( "lodash" );
 var when = require( "when" );
-var Monologue = require( "monologue.js" )( _ );
+var Monologue = require( "monologue.js" );
 var spawn = require( "win-spawn" );
 var Process = require( "./process.js" )( spawn );
 var debug = require( "debug" )( "processhost:host" );
@@ -48,7 +48,7 @@ module.exports = function() {
 		return when.promise( function( resolve, reject ) {
 			var process = id ? this.processes[ id ] : undefined;
 			if ( !process || config ) {
-				process = new Process( id, config );
+				process = Process( id, config );
 				this.processes[ id ] = process;
 
 				process.on( "#", function( data, envelope ) {
@@ -115,6 +115,6 @@ module.exports = function() {
 		}
 	};
 
-	Monologue.mixin( ProcessHost );
+	Monologue.mixInto( ProcessHost );
 	return new ProcessHost();
 };

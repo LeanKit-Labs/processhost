@@ -1,5 +1,4 @@
-var should = require( "should" );
-var _ = require( "lodash" );
+require( "./setup" );
 var processHost = require( "../src/processHost.js" );
 
 describe( "ProcessHost API", function() {
@@ -159,26 +158,18 @@ describe( "ProcessHost API", function() {
 		describe( "when calling start with no arguments", function() {
 
 			it( "should throw an exception", function() {
-				should.throws( function() {
+				expect( function() {
 					host.start();
-				}, function( err ) {
-						if ( err.message === "Cannot call start without an identifier." ) {
-							return true;
-						}
-					} );
+				} ).to.throw( "Cannot call start without an identifier." );
 			} );
 		} );
 
 		describe( "when calling start on missing process", function() {
 
 			it( "should throw an exception", function() {
-				should.throws( function() {
+				expect( function() {
 					host.start( "testd" );
-				}, function( err ) {
-						if ( err.message === "Cannot call start on non-existent 'testd' without configuration." ) {
-							return true;
-						}
-					} );
+				} ).to.throw( "Cannot call start on non-existent 'testd' without configuration." );
 			} );
 		} );
 

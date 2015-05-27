@@ -7,29 +7,28 @@
     "type": "git",
     "url": ""
   },
-  "engines": {
-    "node": "~0.10.10"
-  },
   "dependencies": {
-    "debug": "^2.1.0",
-    "lodash": "~2.4.1",
-    "machina": "0.3.8",
-    "minimatch": "~0.2.12",
-    "monologue.js": "0.1.4",
-    "underscore": "~1.4.3",
-    "when": "^3.6.1",
+    "debug": "^2.2.0",
+    "lodash": "^3.8.0",
+    "machina": "^1.0.0",
+    "minimatch": "^2.0.7",
+    "monologue.js": "~0.3.3",
+    "when": "^3.7.3",
     "win-spawn": "arobson/win-spawn.git#master"
   },
   "devDependencies": {
-    "gulp": "^3.8.10",
-    "gulp-istanbul": "^0.6.0",
-    "gulp-mocha": "^1.1.1",
-    "istanbul": "^0.3.5",
-    "open": "0.0.5",
-    "should": "^4.3.0",
-    "sinon": "^1.11.1"
+    "biggulp": "0.*.*",
+    "chai": "2.1.x",
+    "chai-as-promised": "4.3.x",
+    "gulp": "3.8.*",
+    "gulp-istanbul": "^0.9.0",
+    "gulp-mocha": "^0.5.2",
+    "proxyquire": "^1.4.0",
+    "rimraf": "^2.3.3",
+    "sinon": "^1.14.1",
+    "sinon-as-promised": "^3.0.0",
+    "sinon-chai": "^2.7.0"
   },
-  "optionalDependencies": {},
   "main": "./src/processHost.js",
   "scripts": {
     "test": "gulp test"
