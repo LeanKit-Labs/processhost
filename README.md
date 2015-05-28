@@ -24,6 +24,7 @@ Configuration hash has the following options. Only command and args are required
 	[killSignal]: "" | [ "" ], // not required, defaults to "SIGTERM", can provide an array
 	[stdio]: "inherit" | "ignore" | "pipe" // determines if the process will write to the console
 	[env]: {}, // defaults to the process.env, should be simple hash
+	[restart]: true, // control whether or not the process restarts after a start or restart call
 	[restartLimit]: 1, // number of allowed restarts
 	[restartWindow]: 100 // duration (in ms) of tolerance window
 }
@@ -38,7 +39,7 @@ Configuration hash has the following options. Only command and args are required
 ### create( processAlias, configuration )
 Creates a new process without starting it.
 ```javascript
-processes.start( "myProcess", { command: "node", args: [ "./index.js" ], cwd: "./src" } );
+processes.create( "myProcess", { command: "node", args: [ "./index.js" ], cwd: "./src" } );
 ```
 
 ### restart( [processAlias] )
@@ -86,10 +87,10 @@ You can subscribe to the following process level events off the process host.
  * [processAlias].failed - the process has exceeded the set tolerance
  * [processAlias].restarting - the process is restarting
  * [processAlias].started - the process has started
- * [processAlias].stderr 
+ * [processAlias].stderr
  * [processAlias].stdout
  * [processAlias].stopped - the process has exited after `stop` was called
- 
+
 > Note
 
 > The `stderr` and `stdout` events will not fire unless you set `stdio` to "pipe" in the config hash.

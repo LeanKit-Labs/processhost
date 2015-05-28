@@ -1,4 +1,4 @@
-// !!! NOTICE !!! 
+// !!! NOTICE !!!
 // This source is a copy/adaptation of Anvil.JS"s process host.
 // Anvil.JS is an MIT/GPL product and so all rights are granted.
 // Use of this source in a commercial or work-for-hire capacity does *not*
@@ -27,43 +27,46 @@ module.exports = function() {
 		process.on( "SIGINT", shutdown );
 		process.on( "SIGTERM", shutdown );
 		process.on( "exit", shutdown );
+
+		this.removeListeners = function() {
+			process.removeListener( "SIGINT", shutdown );
+			process.removeListener( "SIGTERM", shutdown );
+			process.removeListener( "exit", shutdown );
+		};
+
 		_.bindAll( this );
 	};
 
-	ProcessHost.prototype.create = function( id, config ) {
-		return when.promise( function( resolve ) {
-			var handle = id ? this.processes[ id ] : undefined;
-			if( !handle || config ) {
-				handle = new Process( id, config );
-				this.processes[ id ] = handle;
+	ProcessHost.prototype.createAndStart = function( id, config ) {
+		return this.create( id, config )
+			.then( function( process ) {
+				return process.start();
+			} );
+	};
 
-				handle.on( "#", function( data, envelope ) {
+	ProcessHost.prototype.create = function( id, config ) {
+		return when.promise( function( resolve, reject ) {
+			var process = id ? this.processes[ id ] : undefined;
+			if ( !process || config ) {
+				process = new Process( id, config );
+				this.processes[ id ] = process;
+
+				process.on( "#", function( data, envelope ) {
 					this.emit( data.id + "." + envelope.topic, data );
 				}.bind( this ) );
-
-				handle.on( "crashed", function( /* data */ ) {
-					debug( "Process '%s' crashed with '%d' - restart limit was set at '%d' within '%d'", id, handle.exits, config.restartLimit, config.restartWindow );
-					if( ( handle.exits <= config.restartLimit || !config.restartLimit ) ) {
-						debug( "Restarting process '%s'", id );
-						handle.start();
-					} else {
-						this.emit( "failed", { exits: handle.exits, id: id } );
-						this.emit( id + ".failed", { exits: handle.exits, id: id } );
-					}
-				}.bind( this ) );
 			}
-			resolve( handle );			
+			resolve( process );
 		}.bind( this ) );
 	};
 
 	ProcessHost.prototype.restart = function( id ) {
 		var process = id ? this.processes[ id ] : undefined;
-		if( id === undefined ) {
-			_.each( this.processes, function( process ) {
-				process.start();
-			} );
-		} else if( process ) {
-			process.start();
+		if ( id === undefined ) {
+			return when.all( _.map( this.processes, function( process ) {
+				return process.start();
+			} ) );
+		} else if ( process ) {
+			return process.start();
 		}
 	};
 
@@ -76,28 +79,33 @@ module.exports = function() {
 	};
 
 	ProcessHost.prototype.start = function( id, config ) {
-		var handle = id ? this.processes[ id ] : undefined;
-		if( handle && /start/.test( handle.state ) && config ) {
-			return when.promise( function( resolve ) {
-				handle.once( "exit", function() {
-					handle.start();
-					resolve( handle );
+		if ( !id ) {
+			throw new Error( "Cannot call start without an identifier." );
+		}
+		var process = id ? this.processes[ id ] : undefined;
+		if ( !process && !config ) {
+			throw new Error( "Cannot call start on non-existent '" + id + "' without configuration." );
+		}
+		if ( process && /start/.test( process.state ) && config ) {
+			return when.promise( function( resolve, reject ) {
+				process.once( "exit", function() {
+					process.off( "#" );
+					this.createAndStart( id, config )
+						.then( resolve, reject );
 				}.bind( this ) );
-				handle.stop();
+				process.stop();
 			}.bind( this ) );
-		} else {
-			return this.create( id, config )
-				.then( function( handle ) {
-					handle.start();
-					return handle;
-				} );
+		} else if ( config ) {
+			return this.createAndStart( id, config );
+		} else if ( process ) {
+			return process.start();
 		}
 	};
 
 	ProcessHost.prototype.stop = function( id ) {
-		if( id ) {
+		if ( id ) {
 			var process = id ? this.processes[ id ] : undefined;
-			if( process ) {
+			if ( process ) {
 				process.stop();
 			}
 		} else {
@@ -106,7 +114,7 @@ module.exports = function() {
 			} );
 		}
 	};
-	
+
 	Monologue.mixin( ProcessHost );
 	return new ProcessHost();
 };
