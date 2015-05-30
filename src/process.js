@@ -6,8 +6,9 @@
 // !!! NOTICE !!!
 
 var _ = require( "lodash" );
-var Monologue = require( "monologue.js" )( _ );
-var machina = require( "machina" )( _ );
+var Monologue = require( "monologue.js" );
+var machina = require( "machina" );
+Monologue.mixInto( machina.Fsm );
 var when = require( "when" );
 var debug = require( "debug" )( "processhost:process" );
 
@@ -32,7 +33,7 @@ function countCrash( fsm, restartLimit, restartWindow ) {
 	}
 	debug( "Process '%s' crashed with '%d' - restart limit was set at '%d' within '%d'",
 		fsm.id, fsm.exits, restartLimit, restartWindow );
-	if( ( fsm.exits <= restartLimit || !restartLimit ) ) {
+	if ( restartLimit === undefined || fsm.exits <= restartLimit ) {
 		debug( "Restarting crashed process, '%s'", fsm.id );
 		fsm.handle( "start", {} );
 	} else {
@@ -65,7 +66,7 @@ function stopProcess( handle, signals, id ) {
 		if ( handle ) {
 			try {
 				handle.kill( signal );
-			} catch (err) {
+			} catch ( err ) {
 				debug( "Error attempting to send", signal, "to process", handle.pid, err );
 			}
 		}
@@ -73,151 +74,152 @@ function stopProcess( handle, signals, id ) {
 }
 
 module.exports = function( spawn ) {
-	var Process = machina.Fsm.extend( {
-		_startProcess: function() {
-			var config = this.config;
-			this.transition( "starting" );
-			this.processHandle = startProcess( spawn, config, this.id );
+	return function( id, config ) {
+		return new machina.Fsm( {
+				_startProcess: function() {
+					var config = this.config;
+					this.transition( "starting" );
+					this.processHandle = startProcess( spawn, config, this.id );
 
-			attachToIO( this.processHandle, "stderr", this.emit, this.id );
-			attachToIO( this.processHandle, "stdout", this.emit, this.id );
+					attachToIO( this.processHandle, "stderr", this.emit, this.id );
+					attachToIO( this.processHandle, "stdout", this.emit, this.id );
 
-			this.processHandle.on( "exit", function( code, signal ) {
-				debug( "Process '%s' exited with code %d", this.id, code );
-				this.handle( "processExit", { code: code, signal: signal } );
-			}.bind( this ) );
-			this.transition( "started" );
-		},
-		_stopProcess: function() {
-			if ( this.processHandle ) {
-				stopProcess( this.processHandle, this.config.killSignal, this.id );
-			}
-		},
-		initialize: function( id, config ) {
-			this.id = id;
-			this.config = config;
-			this.exits = 0;
-			if ( !_.has( config, "restart" ) ) {
-				this.config.restart = true;
-			}
-			_.bindAll( this );
-		},
-		crash: function( data ) {
-			this.transition( "crashed" );
-			countCrash( this, this.config.restartLimit, this.config.restartWindow );
-			this.emit( "crashed", { id: this.id, data: data } );
-		},
-		start: function() {
-			this.exits = 0;
-			return when.promise( function( resolve, reject ) {
-				this.once( "started", function() {
-					resolve( this );
-				}.bind( this ) );
-				this.once( "failed", reject );
-				process.nextTick( function() {
-					this.handle( "start", {} );
-				}.bind( this ) );
-			}.bind( this ) );
-		},
-		stop: function() {
-			process.nextTick( function() {
-				this.handle( "stop", {} );
-			}.bind( this ) );
-		},
-
-		write: function( data ) {
-			if ( this.processHandle && this.processHandle.stdin ) {
-				this.processHandle.stdin.write( data );
-			}
-		},
-		states: {
-			uninitialized: {
-				start: function() {
-					this._startProcess();
-				}
-			},
-			crashed: {
-				_onEnter: function() {
-					debug( "Process '%s' crashed in state %s", this.id, this.previousState );
+					this.processHandle.on( "exit", function( code, signal ) {
+						debug( "Process '%s' exited with code %d", this.id, code );
+						this.handle( "processExit", { code: code, signal: signal } );
+					}.bind( this ) );
+					this.transition( "started" );
+				},
+				_stopProcess: function() {
 					if ( this.processHandle ) {
-						this.processHandle.removeAllListeners();
+						stopProcess( this.processHandle, this.config.killSignal, this.id );
 					}
 				},
-				start: function() {
-					this._startProcess();
-				},
-				failed: function() {
-					this.emit( "failed", { id: this.id } );
-				}
-			},
-			restarting: {
-				_onEnter: function() {
-					reportState( this );
-					this.emit( "restarting", { id: this.id } );
-				},
-				processExit: function( data ) {
-					this._startProcess();
-				}
-			},
-			starting: {
-				_onEnter: function() {
-					reportState( this );
-					this.emit( "starting", { id: this.id } );
-				},
-				start: function() {
-					this.deferUntilTransition( "started" );
-				},
-				stop: function() {
-					this.deferUntilNextHandler();
-				},
-				processExit: function( data ) {
-					this.crash( data );
-				}
-			},
-			started: {
-				_onEnter: function() {
-					reportState( this );
-					this.emit( "started", { id: this.id } );
-				},
-				start: function() {
-					if ( this.config.restart && this.previousState !== "starting" ) {
-						debug( "Process '%s' is being restarted", this.id );
-						this.transition( "restarting" );
-						this._stopProcess();
-					} else {
-						this.emit( "started", { id: this.id } );
+				initialize: function() {
+					this.id = id;
+					this.config = config;
+					this.exits = 0;
+					if ( !_.has( config, "restart" ) ) {
+						this.config.restart = true;
 					}
+					_.bindAll( this );
 				},
-				stop: function() {
-					this.transition( "stopping" );
-					this._stopProcess();
-				},
-				processExit: function( data ) {
-					this.crash( data );
-				}
-			},
-			stopping: {
-				_onEnter: function() {
-					reportState( this );
-				},
-				processExit: function( data ) {
-					debug( "Process '%s' exited", this.id );
-					this.emit( "exit", { id: this.id, data: data } );
-					this.transition( "stopped" );
-				}
-			},
-			stopped: {
-				_onEnter: function() {
-					reportState( this );
-					this.emit( "stopped", { id: this.id } );
+				crash: function( data ) {
+					this.transition( "crashed" );
+					countCrash( this, this.config.restartLimit, this.config.restartWindow );
+					var crashDetail = { id: this.id, data: data };
+					this.emit( "crashed", crashDetail );
 				},
 				start: function() {
 					this.exits = 0;
-					this._startProcess();
+					return when.promise( function( resolve, reject ) {
+						this.once( "started", function() {
+							resolve( this );
+						}.bind( this ) );
+						this.once( "failed", reject );
+						process.nextTick( function() {
+							this.handle( "start", {} );
+						}.bind( this ) );
+					}.bind( this ) );
+				},
+				stop: function() {
+					process.nextTick( function() {
+						this.handle( "stop", {} );
+					}.bind( this ) );
+				},
+
+				write: function( data ) {
+					if ( this.processHandle && this.processHandle.stdin ) {
+						this.processHandle.stdin.write( data );
+					}
+				},
+				states: {
+					uninitialized: {
+						start: function() {
+							this._startProcess();
+						}
+					},
+					crashed: {
+						_onEnter: function() {
+							debug( "Process '%s' crashed in state %s", this.id, this.previousState );
+							if ( this.processHandle ) {
+								this.processHandle.removeAllListeners();
+							}
+						},
+						start: function() {
+							this._startProcess();
+						},
+						failed: function() {
+							this.emit( "failed", { id: this.id } );
+						}
+					},
+					restarting: {
+						_onEnter: function() {
+							reportState( this );
+							this.emit( "restarting", { id: this.id } );
+						},
+						processExit: function( data ) {
+							this._startProcess();
+						}
+					},
+					starting: {
+						_onEnter: function() {
+							reportState( this );
+							this.emit( "starting", { id: this.id } );
+						},
+						start: function() {
+							this.deferUntilTransition( "started" );
+						},
+						stop: function() {
+							this.deferUntilNextHandler();
+						},
+						processExit: function( data ) {
+							this.crash( data );
+						}
+					},
+					started: {
+						_onEnter: function() {
+							reportState( this );
+							this.emit( "started", { id: this.id } );
+						},
+						start: function() {
+							if ( this.config.restart && this.previousState !== "starting" ) {
+								debug( "Process '%s' is being restarted", this.id );
+								this.transition( "restarting" );
+								this._stopProcess();
+							} else {
+								this.emit( "started", { id: this.id } );
+							}
+						},
+						stop: function() {
+							this.transition( "stopping" );
+							this._stopProcess();
+						},
+						processExit: function( data ) {
+							this.crash( data );
+						}
+					},
+					stopping: {
+						_onEnter: function() {
+							reportState( this );
+						},
+						processExit: function( data ) {
+							debug( "Process '%s' exited", this.id );
+							this.emit( "exit", { id: this.id, data: data } );
+							this.transition( "stopped" );
+						}
+					},
+					stopped: {
+						_onEnter: function() {
+							reportState( this );
+							this.emit( "stopped", { id: this.id } );
+						},
+						start: function() {
+							this.exits = 0;
+							this._startProcess();
+						}
+					}
 				}
-			}
-		}
-	} );
-	Monologue.mixin( Process );
-	return Process;
+			} );
+	};
 };

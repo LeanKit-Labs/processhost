@@ -1,13 +1,12 @@
-var _ = require( "lodash" );
-var should = require( "should" ); // jshint ignore:line
-var spawn = require( "win-spawn" );
+require( "./setup" );
 
 describe( "Live Process Control", function() {
 	var child;
 	var handleEvent = false;
 	var stdoutData = false;
-
+	var spawn;
 	before( function( done ) {
+		spawn = require( "win-spawn" );
 		var Process = require( "../src/process.js" )( spawn );
 		child = new Process( "timer2", {
 			cwd: "./spec",
@@ -132,7 +131,7 @@ describe( "Process transitions", function() {
 			} );
 		} );
 
-		describe( "when calling restarting a un-restart-able process", function() {
+		describe( "when calling restart on an un-restart-able process", function() {
 			var transitionalState;
 
 			before( function( done ) {
