@@ -2,18 +2,21 @@
   "name": "processhost",
   "author": "Alex Robson <asrobson@gmail.com> (http://nerdventure.io)",
   "description": "a ridiculously simple process host",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "repository": {
     "type": "git",
     "url": ""
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
   "dependencies": {
     "debug": "^2.2.0",
-    "lodash": "^3.8.0",
+    "lodash": "3.x",
     "machina": "^1.0.0",
     "minimatch": "^2.0.7",
     "monologue.js": "~0.3.3",
-    "when": "^3.7.3",
+    "when": "3.x",
     "win-spawn": "arobson/win-spawn.git#master"
   },
   "devDependencies": {
@@ -30,8 +33,12 @@
     "sinon-chai": "^2.7.0"
   },
   "main": "./src/processHost.js",
+  "files": [
+    "src",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "gulp test"
+    "test": "gulp test-and-exit"
   },
   "licenses": [
     {
