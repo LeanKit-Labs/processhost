@@ -43,7 +43,6 @@ describe( "Live Process Control", function() {
 } );
 
 describe( "Process transitions", function() {
-
 	var child;
 	describe( "with stubbed spawn", function() {
 		var spawn;
@@ -161,7 +160,6 @@ describe( "Process transitions", function() {
 		} );
 
 		describe( "when calling stop on a started process", function() {
-
 			before( function( done ) {
 				child.once( "exit", function() {
 					done();

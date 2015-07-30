@@ -12,14 +12,15 @@ var spawn = require( "win-spawn" );
 var processFn = require( "./process.js" )( spawn );
 
 module.exports = function() {
-
 	var ProcessHost = function() {
 		var shutdown;
 		this.processes = {};
+		// jscs:disable safeContextKeyword
 		var host = this;
+		// jscs:enable safeContextKeyword
 
 		function onShutdown( exitCode ) {
-			if( !shutdown ) {
+			if ( !shutdown ) {
 				shutdown = true;
 				host.stop();
 				host.removeListeners();

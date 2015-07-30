@@ -75,20 +75,20 @@ describe( "ProcessHost API", function() {
 		before( function( done ) {
 			host = processHost();
 			host.setup( {
-				"timer3a": {
+				timer3a: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
 					stdio: "pipe",
 					start: true
 				},
-				"timer3b": {
+				timer3b: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
 					stdio: "pipe",
 					start: true
-				}, "timer3c": {
+				}, timer3c: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
@@ -158,7 +158,6 @@ describe( "ProcessHost API", function() {
 		} );
 
 		describe( "when calling start with no arguments", function() {
-
 			it( "should throw an exception", function() {
 				expect( function() {
 					host.start();
@@ -167,7 +166,6 @@ describe( "ProcessHost API", function() {
 		} );
 
 		describe( "when calling start on missing process", function() {
-
 			it( "should throw an exception", function() {
 				expect( function() {
 					host.start( "testd" );
@@ -192,7 +190,9 @@ describe( "ProcessHost API", function() {
 					.withArgs( 100 );
 				process.exit = exitMock;
 				process.emit( "exit", 100 );
-				setTimeout( function() { done(); }, 50 );
+				setTimeout( function() {
+					done();
+				}, 50 );
 			} );
 
 			it( "should call exit with error code as expected", function() {
@@ -210,7 +210,9 @@ describe( "ProcessHost API", function() {
 					.withArgs( 0 );
 				process.exit = exitMock;
 				process.emit( "exit" );
-				setTimeout( function() { done(); }, 50 );
+				setTimeout( function() {
+					done();
+				}, 50 );
 			} );
 
 			it( "should call exit with error code as expected", function() {
@@ -228,7 +230,9 @@ describe( "ProcessHost API", function() {
 					.withArgs( 20 );
 				process.exit = exitMock;
 				process.emit( "SIGINT", 20 );
-				setTimeout( function() { done(); }, 50 );
+				setTimeout( function() {
+					done();
+				}, 50 );
 			} );
 
 			it( "should call exit with error code as expected", function() {
@@ -246,7 +250,9 @@ describe( "ProcessHost API", function() {
 					.withArgs( 0 );
 				process.exit = exitMock;
 				process.emit( "SIGINT" );
-				setTimeout( function() { done(); }, 50 );
+				setTimeout( function() {
+					done();
+				}, 50 );
 			} );
 
 			it( "should call exit with error code as expected", function() {
