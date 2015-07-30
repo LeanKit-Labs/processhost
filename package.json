@@ -2,7 +2,7 @@
   "name": "processhost",
   "author": "Alex Robson <asrobson@gmail.com> (http://nerdventure.io)",
   "description": "a ridiculously simple process host",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "repository": {
     "type": "git",
     "url": ""
@@ -40,10 +40,5 @@
   "scripts": {
     "test": "gulp test-and-exit"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/LeanKit-Labs/processhost/raw/master/LICENSE"
-    }
-  ]
+  "license": "MIT"
 }

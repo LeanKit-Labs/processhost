@@ -1,5 +1,8 @@
 ## 0.2.x
 
+### 0.2.3
+ * Bug fix - nasty bad awful defect causing anything using process host to always exit with 0
+
 ### 0.2.2
  * Fix issue where restartLimit of 0 didn't stop process from restarting
  * Update dependencies to newest versions and make changes where required
