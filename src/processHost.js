@@ -9,29 +9,33 @@ var _ = require( "lodash" );
 var when = require( "when" );
 var Monologue = require( "monologue.js" );
 var spawn = require( "win-spawn" );
-var Process = require( "./process.js" )( spawn );
-var debug = require( "debug" )( "processhost:host" );
+var processFn = require( "./process.js" )( spawn );
 
 module.exports = function() {
-
 	var ProcessHost = function() {
 		var shutdown;
 		this.processes = {};
+		// jscs:disable safeContextKeyword
+		var host = this;
+		// jscs:enable safeContextKeyword
 
-		shutdown = function() {
-			shutdown = function() {};
-			this.stop();
-			process.exit( 0 );
-		}.bind( this );
+		function onShutdown( exitCode ) {
+			if ( !shutdown ) {
+				shutdown = true;
+				host.stop();
+				host.removeListeners();
+				process.exit( exitCode || 0 );
+			}
+		}
 
-		process.on( "SIGINT", shutdown );
-		process.on( "SIGTERM", shutdown );
-		process.on( "exit", shutdown );
+		process.on( "SIGINT", onShutdown );
+		process.on( "SIGTERM", onShutdown );
+		process.on( "exit", onShutdown );
 
 		this.removeListeners = function() {
-			process.removeListener( "SIGINT", shutdown );
-			process.removeListener( "SIGTERM", shutdown );
-			process.removeListener( "exit", shutdown );
+			process.removeAllListeners( "SIGINT", onShutdown );
+			process.removeAllListeners( "SIGTERM", onShutdown );
+			process.removeAllListeners( "exit", onShutdown );
 		};
 
 		_.bindAll( this );
@@ -46,27 +50,27 @@ module.exports = function() {
 
 	ProcessHost.prototype.create = function( id, config ) {
 		return when.promise( function( resolve, reject ) {
-			var process = id ? this.processes[ id ] : undefined;
-			if ( !process || config ) {
-				process = Process( id, config );
-				this.processes[ id ] = process;
+			var child = id ? this.processes[ id ] : undefined;
+			if ( !child || config ) {
+				child = processFn( id, config );
+				this.processes[ id ] = child;
 
-				process.on( "#", function( data, envelope ) {
+				child.on( "#", function( data, envelope ) {
 					this.emit( data.id + "." + envelope.topic, data );
 				}.bind( this ) );
 			}
-			resolve( process );
+			resolve( child );
 		}.bind( this ) );
 	};
 
 	ProcessHost.prototype.restart = function( id ) {
-		var process = id ? this.processes[ id ] : undefined;
+		var child = id ? this.processes[ id ] : undefined;
 		if ( id === undefined ) {
-			return when.all( _.map( this.processes, function( process ) {
-				return process.start();
+			return when.all( _.map( this.processes, function( child ) {
+				return child.start();
 			} ) );
-		} else if ( process ) {
-			return process.start();
+		} else if ( child ) {
+			return child.start();
 		}
 	};
 
@@ -82,35 +86,35 @@ module.exports = function() {
 		if ( !id ) {
 			throw new Error( "Cannot call start without an identifier." );
 		}
-		var process = id ? this.processes[ id ] : undefined;
-		if ( !process && !config ) {
+		var child = id ? this.processes[ id ] : undefined;
+		if ( !child && !config ) {
 			throw new Error( "Cannot call start on non-existent '" + id + "' without configuration." );
 		}
-		if ( process && /start/.test( process.state ) && config ) {
+		if ( child && /start/.test( child.state ) && config ) {
 			return when.promise( function( resolve, reject ) {
-				process.once( "exit", function() {
-					process.off( "#" );
+				child.once( "exit", function() {
+					child.off( "#" );
 					this.createAndStart( id, config )
 						.then( resolve, reject );
 				}.bind( this ) );
-				process.stop();
+				child.stop();
 			}.bind( this ) );
 		} else if ( config ) {
 			return this.createAndStart( id, config );
-		} else if ( process ) {
-			return process.start();
+		} else if ( child ) {
+			return child.start();
 		}
 	};
 
 	ProcessHost.prototype.stop = function( id ) {
 		if ( id ) {
-			var process = id ? this.processes[ id ] : undefined;
-			if ( process ) {
-				process.stop();
+			var child = id ? this.processes[ id ] : undefined;
+			if ( child ) {
+				child.stop();
 			}
 		} else {
-			_.each( this.processes, function( process ) {
-				process.stop();
+			_.each( this.processes, function( child ) {
+				child.stop();
 			} );
 		}
 	};

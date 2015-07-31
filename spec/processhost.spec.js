@@ -2,13 +2,14 @@ require( "./setup" );
 var processHost = require( "../src/processHost.js" );
 
 describe( "ProcessHost API", function() {
+	var originalExit = process.exit;
+
 	describe( "when starting a child process", function() {
 		var host;
 		var hostEvent = false;
 		var stdoutData = false;
 
 		before( function( done ) {
-
 			host = processHost();
 			host.start( "timer1", {
 				cwd: "./spec",
@@ -60,6 +61,7 @@ describe( "ProcessHost API", function() {
 		} );
 
 		after( function( done ) {
+			host.removeListeners();
 			host.once( "timer1.stopped", function() {
 				done();
 			} );
@@ -73,27 +75,27 @@ describe( "ProcessHost API", function() {
 		before( function( done ) {
 			host = processHost();
 			host.setup( {
-				"timer3a": {
+				timer3a: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
 					stdio: "pipe",
 					start: true
 				},
-				"timer3b": {
+				timer3b: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
 					stdio: "pipe",
 					start: true
-				}, "timer3c": {
+				}, timer3c: {
 					cwd: "./spec",
 					command: "node",
 					args: [ "timer.js" ],
 					stdio: "pipe",
 					start: true
 				}
-			} ).then( function( handles ) {
+			} ).then( function() {
 				done();
 			} );
 		} );
@@ -156,7 +158,6 @@ describe( "ProcessHost API", function() {
 		} );
 
 		describe( "when calling start with no arguments", function() {
-
 			it( "should throw an exception", function() {
 				expect( function() {
 					host.start();
@@ -165,7 +166,6 @@ describe( "ProcessHost API", function() {
 		} );
 
 		describe( "when calling start on missing process", function() {
-
 			it( "should throw an exception", function() {
 				expect( function() {
 					host.start( "testd" );
@@ -174,8 +174,94 @@ describe( "ProcessHost API", function() {
 		} );
 
 		after( function() {
-			host.stop();
 			host.removeListeners();
+			host.stop();
 		} );
+	} );
+
+	describe( "when handling process signals", function() {
+		describe( "when process emits an exit with an error code", function() {
+			var host, exitMock;
+
+			before( function( done ) {
+				host = processHost();
+				exitMock = sinon.expectation.create( "exit" )
+					.once()
+					.withArgs( 100 );
+				process.exit = exitMock;
+				process.emit( "exit", 100 );
+				setTimeout( function() {
+					done();
+				}, 50 );
+			} );
+
+			it( "should call exit with error code as expected", function() {
+				exitMock.verify();
+			} );
+		} );
+
+		describe( "when process emits an exit without an error code", function() {
+			var host, exitMock;
+
+			before( function( done ) {
+				host = processHost();
+				exitMock = sinon.expectation.create( "exit" )
+					.once()
+					.withArgs( 0 );
+				process.exit = exitMock;
+				process.emit( "exit" );
+				setTimeout( function() {
+					done();
+				}, 50 );
+			} );
+
+			it( "should call exit with error code as expected", function() {
+				exitMock.verify();
+			} );
+		} );
+
+		describe( "when process emits SIGINT with an error code", function() {
+			var host, exitMock;
+
+			before( function( done ) {
+				host = processHost();
+				exitMock = sinon.expectation.create( "exit" )
+					.once()
+					.withArgs( 20 );
+				process.exit = exitMock;
+				process.emit( "SIGINT", 20 );
+				setTimeout( function() {
+					done();
+				}, 50 );
+			} );
+
+			it( "should call exit with error code as expected", function() {
+				exitMock.verify();
+			} );
+		} );
+
+		describe( "when process emits SIGINT without an error code", function() {
+			var host, exitMock;
+
+			before( function( done ) {
+				host = processHost();
+				exitMock = sinon.expectation.create( "exit" )
+					.once()
+					.withArgs( 0 );
+				process.exit = exitMock;
+				process.emit( "SIGINT" );
+				setTimeout( function() {
+					done();
+				}, 50 );
+			} );
+
+			it( "should call exit with error code as expected", function() {
+				exitMock.verify();
+			} );
+		} );
+	} );
+
+	after( function() {
+		process.exit = originalExit;
 	} );
 } );
